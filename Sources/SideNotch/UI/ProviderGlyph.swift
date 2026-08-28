@@ -12,6 +12,8 @@ struct ProviderGlyph: View {
                 Starburst().stroke(.white, style: .init(lineWidth: size * 0.11, lineCap: .round))
             case .openAI:
                 KnotFlower().stroke(.white, style: .init(lineWidth: size * 0.09, lineJoin: .round))
+            case .gemini:
+                Sparkle().fill(.white)
             case .openRouter:
                 Monogram(text: "OR")
             case .deepSeek:
@@ -56,6 +58,28 @@ private struct KnotFlower: Shape {
             petal = petal.applying(CGAffineTransform(translationX: c.x, y: c.y))
             p.addPath(petal)
         }
+        return p
+    }
+}
+
+/// Gemini-style four-point sparkle with concave sides.
+private struct Sparkle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let r = min(rect.width, rect.height) / 2
+        let points = [
+            CGPoint(x: c.x, y: c.y - r),   // top
+            CGPoint(x: c.x + r, y: c.y),   // right
+            CGPoint(x: c.x, y: c.y + r),   // bottom
+            CGPoint(x: c.x - r, y: c.y),   // left
+        ]
+        p.move(to: points[0])
+        for i in 0..<4 {
+            // Concave curve from each tip to the next, bowing toward center.
+            p.addQuadCurve(to: points[(i + 1) % 4], control: c)
+        }
+        p.closeSubpath()
         return p
     }
 }

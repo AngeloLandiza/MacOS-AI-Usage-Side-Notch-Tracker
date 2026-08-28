@@ -16,14 +16,7 @@ struct ClaudeProvider: UsageProvider {
             return true
         }
         if FileManager.default.fileExists(atPath: Self.credentialsFile.path) { return true }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "Claude Code-credentials",
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess
+        return SecurityCLI.itemExists(service: "Claude Code-credentials")
     }
 
     func fetch() async throws -> ProviderStatus {

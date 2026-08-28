@@ -43,7 +43,7 @@ struct NotchView: View {
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.viewAligned)
-        .scrollIndicators(.hidden)
+        .scrollIndicators(.never)
         .frame(width: metrics.bodyWidth)
         .padding(.vertical, metrics.flare)
         .frame(maxWidth: .infinity, alignment: .trailing)

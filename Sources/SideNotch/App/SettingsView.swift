@@ -69,6 +69,12 @@ private struct ProvidersTab: View {
                     stateID: "openai",
                     help: "Uses your Codex CLI login. To connect, run `codex login` in Terminal."
                 )
+                connectionRow(
+                    name: "Gemini",
+                    connected: GeminiProvider().isConfigured(),
+                    stateID: "gemini",
+                    help: "Uses your Antigravity or Gemini CLI login (personal accounts need Antigravity)."
+                )
             } header: {
                 Text("Signed in automatically")
             }

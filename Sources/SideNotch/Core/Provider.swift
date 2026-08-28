@@ -17,7 +17,7 @@ extension UsageProvider {
 @MainActor
 enum ProviderRegistry {
     static var all: [any UsageProvider] {
-        [ClaudeProvider(), CodexProvider(), OpenRouterProvider(), DeepSeekProvider()]
+        [ClaudeProvider(), CodexProvider(), GeminiProvider(), OpenRouterProvider(), DeepSeekProvider()]
     }
 
     /// Providers that currently have credentials available.

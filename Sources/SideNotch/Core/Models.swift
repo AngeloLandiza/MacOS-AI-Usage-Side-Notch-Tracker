@@ -7,7 +7,7 @@ struct ProviderInfo: Identifiable, Sendable, Equatable {
     let glyph: Glyph
 
     enum Glyph: Sendable, Equatable {
-        case claude, openAI, openRouter, deepSeek
+        case claude, openAI, gemini, openRouter, deepSeek
         case monogram(String)
     }
 }

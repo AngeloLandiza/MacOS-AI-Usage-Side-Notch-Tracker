@@ -94,9 +94,11 @@ final class UsageStore: ObservableObject {
             guard byID[id] != nil else { continue }
             switch result {
             case let .success(status):
+                appLog.info("fetch \(id): ok, ring \(status.ringLabel)")
                 failureStreak[id] = 0
                 states[id] = .ok(status)
             case let .failure(error):
+                appLog.error("fetch \(id): \(error.localizedDescription)")
                 // Keep the last good value through transient errors, but stop
                 // masking once failures persist.
                 let streak = (failureStreak[id] ?? 0) + 1

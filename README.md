@@ -22,6 +22,7 @@ platforms at once.
 |---|---|---|
 | **Claude** | Claude Code 5-hour session + weekly usage %, reset times (same numbers as `/usage`) | None — auto-detects your Claude Code login |
 | **OpenAI** | Codex/ChatGPT plan 5-hour + weekly rate-limit usage %, credits balance | None — auto-detects your Codex CLI login (`codex login`) |
+| **Gemini** | Session/weekly quota % for Gemini (and Antigravity's other-model pools), reset times | None — auto-detects your Antigravity or Gemini CLI login |
 | **OpenRouter** | Usage vs. key limit / purchased credits, remaining balance, daily–monthly spend | API key in Settings |
 | **DeepSeek** | Account balance (granted + topped-up) | API key in Settings |
 
@@ -30,27 +31,37 @@ flip through them. Everything is reachable from the **menu bar item** (or
 right-click the notch): Refresh, Settings, Quit. The Settings window's
 **Providers** tab shows each provider's connection status and takes the API keys.
 
-> Claude and OpenAI data comes from the same endpoints their own CLIs use. These
-> are unofficial and may change. The Claude endpoint is polled gently (every
-> 5 min) per its rate-limit rules; on first launch macOS may ask permission for
-> the app to read Claude Code's Keychain item.
+> Claude, OpenAI, and Gemini data comes from the same endpoints their own
+> CLIs/apps use. These are unofficial and may change. The Claude endpoint is
+> polled gently (every 5 min) per its rate-limit rules. On first launch macOS
+> may ask permission to read Claude Code's or Antigravity's Keychain item —
+> click **Always Allow** — and (macOS 26+) whether to allow SideNotch network
+> access — click **Allow**, or fix it later under **System Settings → Privacy &
+> Security → Network**. Google's quota API no longer serves personal accounts
+> through the Gemini CLI client, so personal Gemini quota needs an
+> [Antigravity](https://antigravity.google) login; Workspace/licensed Code
+> Assist accounts work via `gemini` directly.
 
 ## Install
 
-**Download**: grab `SideNotch-x.y.z.dmg` from the
-[latest release](https://github.com/AngeloLandiza/MacOS-AI-Usage-Side-Notch-Tracker/releases/latest),
-open it, and drag **SideNotch** into **Applications**.
+**Easiest — one line in Terminal** (downloads the latest release, installs to
+Applications, and launches; no Gatekeeper dialogs because Terminal downloads
+carry no quarantine flag):
 
-The app isn't notarized, so macOS blocks the first launch. On macOS 15 or
-later: open the app once, dismiss the dialog, then go to **System Settings →
-Privacy & Security** and click **Open Anyway**. If macOS instead calls the app
-"damaged" (common for downloaded unsigned apps), run
+```bash
+curl -fsSL https://raw.githubusercontent.com/AngeloLandiza/MacOS-AI-Usage-Side-Notch-Tracker/main/scripts/install.sh | bash
+```
+
+**Or download the DMG**: grab `SideNotch-x.y.z.dmg` from the
+[latest release](https://github.com/AngeloLandiza/MacOS-AI-Usage-Side-Notch-Tracker/releases/latest)
+and drag **SideNotch** into **Applications**. The app isn't notarized, so macOS
+blocks the first launch with "Apple could not verify…" — click **Done** (not
+Move to Trash), then either go to **System Settings → Privacy & Security** and
+click **Open Anyway**, or run:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/SideNotch.app
 ```
-
-and open it again. (On macOS 14, right-click → Open still works.)
 
 **Or build from source**:
 
