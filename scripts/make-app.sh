@@ -11,8 +11,9 @@ trap 'rm -rf "$SCRATCH"' EXIT
 swift build -c release --scratch-path "$SCRATCH"
 BIN="$(swift build -c release --scratch-path "$SCRATCH" --show-bin-path)/SideNotch"
 
-APP="dist/SideNotch.app"
-rm -rf "$APP"
+# Assemble and sign in the scratch dir: doing it inside an iCloud-synced
+# checkout races with Finder metadata that breaks codesign.
+APP="$SCRATCH/SideNotch.app"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/SideNotch"
 
@@ -37,4 +38,7 @@ PLIST
 
 xattr -rc "$APP" 2>/dev/null || true
 codesign --force --sign - "$APP"
-echo "Built $APP"
+mkdir -p dist
+rm -rf dist/SideNotch.app
+cp -R "$APP" dist/
+echo "Built dist/SideNotch.app"

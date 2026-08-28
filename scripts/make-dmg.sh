@@ -9,6 +9,7 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/S
 STAGE="$(mktemp -d /tmp/sidenotch-dmg.XXXXXX)"
 trap 'rm -rf "$STAGE"' EXIT
 cp -R dist/SideNotch.app "$STAGE/"
+xattr -rc "$STAGE/SideNotch.app" 2>/dev/null || true
 ln -s /Applications "$STAGE/Applications"
 cat > "$STAGE/READ ME FIRST.txt" <<'NOTE'
 AI Side Notch — first launch
