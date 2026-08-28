@@ -44,7 +44,21 @@ final class UsageStore: ObservableObject {
         await refresh(ids: Array(byID.keys), force: force)
     }
 
+    /// User-initiated check of specific providers: drops last-good state so the
+    /// real outcome (including a bad key's error) shows immediately.
+    func retest(ids: [String]) async {
+        let known = ids.filter { byID[$0] != nil }
+        for id in known {
+            states[id] = .loading
+            failureStreak[id] = 0
+        }
+        await refresh(ids: known, force: true)
+    }
+
     private func refreshDue() async {
+        // Cheap re-detection so providers appear/disappear as CLIs sign in or
+        // keys change, without needing a Settings visit.
+        reloadProviders()
         let now = Date()
         let due = byID.filter { id, provider in
             now.timeIntervalSince(lastFetch[id] ?? .distantPast) >= provider.refreshInterval

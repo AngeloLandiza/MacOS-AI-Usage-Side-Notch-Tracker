@@ -17,20 +17,24 @@ final class HoverModel: ObservableObject {
 struct NotchView: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var hoverModel: HoverModel
+    @ObservedObject var settings: AppSettings
+    var onNotchHover: (Bool) -> Void
     var onRefresh: () -> Void
     var onSettings: () -> Void
     var onQuit: () -> Void
 
     var body: some View {
+        let metrics = NotchMetrics(scale: settings.scale)
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 if store.providers.isEmpty {
-                    EmptyCell(onSettings: onSettings)
+                    EmptyCell(metrics: metrics, onSettings: onSettings)
                 } else {
                     ForEach(store.providers) { info in
                         ProviderCell(
                             info: info,
                             state: store.states[info.id] ?? .loading,
+                            metrics: metrics,
                             hoverModel: hoverModel
                         )
                     }
@@ -40,15 +44,19 @@ struct NotchView: View {
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
-        .frame(width: Theme.notchBodyWidth)
-        .padding(.vertical, Theme.notchFlare)
+        .frame(width: metrics.bodyWidth)
+        .padding(.vertical, metrics.flare)
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .background(NotchShape().fill(Theme.notchBackground))
+        .background(
+            NotchShape(bodyWidth: metrics.bodyWidth, flare: metrics.flare)
+                .fill(Theme.notchBackground)
+        )
+        .onHover(perform: onNotchHover)
         .contextMenu {
             Button("Refresh", action: onRefresh)
             Button("Settings…", action: onSettings)
             Divider()
-            Button("Quit Side Notch", action: onQuit)
+            Button("Quit AI Side Notch", action: onQuit)
         }
     }
 }
@@ -56,16 +64,17 @@ struct NotchView: View {
 private struct ProviderCell: View {
     let info: ProviderInfo
     let state: LoadState
+    let metrics: NotchMetrics
     @ObservedObject var hoverModel: HoverModel
 
     var body: some View {
-        VStack(spacing: 7) {
-            RingGauge(glyph: info.glyph, fraction: ringFraction, dimmed: isFailed)
+        VStack(spacing: 7 * metrics.scale) {
+            RingGauge(glyph: info.glyph, fraction: ringFraction, dimmed: isFailed, metrics: metrics)
             Text(ringLabel)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: metrics.labelSize, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
         }
-        .frame(width: Theme.notchBodyWidth, height: Theme.itemHeight)
+        .frame(width: metrics.bodyWidth, height: metrics.itemHeight)
         .contentShape(Rectangle())
         .background(
             GeometryReader { geo in
@@ -116,21 +125,22 @@ private struct ProviderCell: View {
 }
 
 private struct EmptyCell: View {
+    let metrics: NotchMetrics
     var onSettings: () -> Void
 
     var body: some View {
         Button(action: onSettings) {
             VStack(spacing: 7) {
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 22 * metrics.scale))
                     .foregroundStyle(.white.opacity(0.8))
                 Text("Set up")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12 * metrics.scale, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
             }
         }
         .buttonStyle(.plain)
-        .frame(width: Theme.notchBodyWidth, height: Theme.itemHeight)
+        .frame(width: metrics.bodyWidth, height: metrics.itemHeight)
     }
 }
 

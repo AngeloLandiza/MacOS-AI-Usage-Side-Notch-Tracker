@@ -4,12 +4,13 @@ import SwiftUI
 /// flares at top and bottom that blend into the edge (like a hardware notch
 /// rotated onto the side of the display).
 struct NotchShape: Shape {
+    var bodyWidth: CGFloat = Theme.notchBodyWidth
     var flare: CGFloat = Theme.notchFlare
 
     func path(in rect: CGRect) -> Path {
         let w = rect.maxX
         let h = rect.maxY
-        let left = rect.maxX - Theme.notchBodyWidth
+        let left = rect.maxX - bodyWidth
         var p = Path()
         p.move(to: CGPoint(x: w, y: 0))
         // Top flare: leaves the screen edge vertically, lands on the body's

@@ -9,6 +9,10 @@ platforms at once.
 - **Hover** a ring to expand a detail card: session/weekly usage bars, reset
   times ("Resets in 51 min"), and **API credits / balance** where the provider
   exposes it.
+- **Menu bar item** with at-a-glance numbers, Refresh, and Settings.
+- **Settings** (menu bar → Settings…): auto-hide the notch to a thin strip at
+  the screen edge, a size slider for the whole notch, and all provider
+  sign-in/API-key management in one Providers tab.
 - Always on top, on every Space, and never steals focus or clicks.
 - Zero dependencies. One small Swift package.
 
@@ -22,7 +26,9 @@ platforms at once.
 | **DeepSeek** | Account balance (granted + topped-up) | API key in Settings |
 
 Providers appear automatically once their credentials exist; scroll the notch to
-flip through them. Right-click the notch for **Refresh / Settings / Quit**.
+flip through them. Everything is reachable from the **menu bar item** (or
+right-click the notch): Refresh, Settings, Quit. The Settings window's
+**Providers** tab shows each provider's connection status and takes the API keys.
 
 > Claude and OpenAI data comes from the same endpoints their own CLIs use. These
 > are unofficial and may change. The Claude endpoint is polled gently (every
@@ -31,12 +37,31 @@ flip through them. Right-click the notch for **Refresh / Settings / Quit**.
 
 ## Install
 
+**Download**: grab `SideNotch-x.y.z.dmg` from the
+[latest release](https://github.com/AngeloLandiza/MacOS-AI-Usage-Side-Notch-Tracker/releases/latest),
+open it, and drag **SideNotch** into **Applications**.
+
+The app isn't notarized, so macOS blocks the first launch. On macOS 15 or
+later: open the app once, dismiss the dialog, then go to **System Settings →
+Privacy & Security** and click **Open Anyway**. If macOS instead calls the app
+"damaged" (common for downloaded unsigned apps), run
+
+```bash
+xattr -dr com.apple.quarantine /Applications/SideNotch.app
+```
+
+and open it again. (On macOS 14, right-click → Open still works.)
+
+**Or build from source**:
+
 ```bash
 git clone https://github.com/AngeloLandiza/MacOS-AI-Usage-Side-Notch-Tracker.git
 cd MacOS-AI-Usage-Side-Notch-Tracker
 scripts/make-app.sh
 open dist/SideNotch.app
 ```
+
+`scripts/make-dmg.sh` builds the disk image.
 
 Requires macOS 14+ and Xcode 16+ (`swift build` needs the full Xcode toolchain
 for SwiftUI, not just the Command Line Tools — if you see a `SwiftUIMacros`

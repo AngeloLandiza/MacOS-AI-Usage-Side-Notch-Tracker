@@ -74,10 +74,24 @@ import Testing
     }
 
     @Test func notchHeightCapsAtThreeItems() {
-        let one = Theme.notchHeight(itemCount: 1)
-        let three = Theme.notchHeight(itemCount: 3)
-        #expect(Theme.notchHeight(itemCount: 0) == one)   // empty state still shows one cell
-        #expect(Theme.notchHeight(itemCount: 5) == three) // never taller than 3 visible
-        #expect(three - one == 2 * Theme.itemHeight)
+        let m = NotchMetrics()
+        let one = m.notchHeight(itemCount: 1)
+        let three = m.notchHeight(itemCount: 3)
+        #expect(m.notchHeight(itemCount: 0) == one)   // empty state still shows one cell
+        #expect(m.notchHeight(itemCount: 5) == three) // never taller than 3 visible
+        #expect(three - one == 2 * m.itemHeight)
+    }
+
+    @Test func metricsScaleUniformly() {
+        let big = NotchMetrics(scale: 1.4)
+        #expect(big.itemHeight == Theme.itemHeight * 1.4)
+        #expect(big.bodyWidth == Theme.notchBodyWidth * 1.4)
+        #expect(big.notchHeight(itemCount: 3) == 3 * big.itemHeight + 2 * big.flare)
+    }
+
+    @Test func scaleClamping() {
+        #expect(2.0.clamped(to: AppSettings.scaleRange) == 1.4)
+        #expect(0.5.clamped(to: AppSettings.scaleRange) == 0.8)
+        #expect(1.0.clamped(to: AppSettings.scaleRange) == 1.0)
     }
 }
