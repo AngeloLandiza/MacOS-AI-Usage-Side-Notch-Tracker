@@ -10,7 +10,12 @@ final class UsageStore: ObservableObject {
 
     private var byID: [String: any UsageProvider] = [:]
     private var lastFetch: [String: Date] = [:]
+    private var failureStreak: [String: Int] = [:]
     private var timer: Timer?
+
+    /// Keep showing last-good data through this many failed refreshes, then
+    /// surface the error (e.g. an expired login) instead of stale numbers.
+    private static let maxMaskedFailures = 3
 
     private static let tickInterval: TimeInterval = 30
 
@@ -31,6 +36,8 @@ final class UsageStore: ObservableObject {
             states[info.id] = .loading
         }
         states = states.filter { byID[$0.key] != nil }
+        lastFetch = lastFetch.filter { byID[$0.key] != nil }
+        failureStreak = failureStreak.filter { byID[$0.key] != nil }
     }
 
     func refreshAll(force: Bool = false) async {
@@ -69,12 +76,18 @@ final class UsageStore: ObservableObject {
             return collected
         }
         for (id, result) in results {
+            // The provider may have been removed in Settings mid-fetch.
+            guard byID[id] != nil else { continue }
             switch result {
             case let .success(status):
+                failureStreak[id] = 0
                 states[id] = .ok(status)
             case let .failure(error):
-                // Keep the last good value if we had one; otherwise surface the error.
-                if case .ok = states[id] { continue }
+                // Keep the last good value through transient errors, but stop
+                // masking once failures persist.
+                let streak = (failureStreak[id] ?? 0) + 1
+                failureStreak[id] = streak
+                if case .ok = states[id], streak < Self.maxMaskedFailures { continue }
                 states[id] = .failed(error.localizedDescription)
             }
         }

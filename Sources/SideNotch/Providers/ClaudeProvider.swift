@@ -8,10 +8,26 @@ struct ClaudeProvider: UsageProvider {
     /// The usage endpoint rate-limits aggressive pollers; stay well behind it.
     var refreshInterval: TimeInterval { 300 }
 
-    func isConfigured() -> Bool { Self.accessToken() != nil }
+    /// Cheap, prompt-free check: env var, credentials file, or the existence of
+    /// Claude Code's Keychain item (metadata only — reading the secret itself
+    /// can show a permission prompt, so that happens async in `fetch`).
+    func isConfigured() -> Bool {
+        if let env = ProcessInfo.processInfo.environment["CLAUDE_CODE_OAUTH_TOKEN"], !env.isEmpty {
+            return true
+        }
+        if FileManager.default.fileExists(atPath: Self.credentialsFile.path) { return true }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "Claude Code-credentials",
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess
+    }
 
     func fetch() async throws -> ProviderStatus {
-        guard let token = Self.accessToken() else {
+        guard let token = await ClaudeTokenStore.shared.token() else {
             throw HTTPError.status(401, "No Claude Code login found. Run `claude` and sign in.")
         }
         let data = try await HTTP.json(
@@ -29,70 +45,18 @@ struct ClaudeProvider: UsageProvider {
 
     // MARK: - Credentials (Keychain item written by Claude Code, or file/env fallback)
 
-    static func accessToken() -> String? {
-        if let env = ProcessInfo.processInfo.environment["CLAUDE_CODE_OAUTH_TOKEN"], !env.isEmpty {
-            return env
-        }
-        let json = keychainCredentialsJSON()
-            ?? (try? String(
-                contentsOf: FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent(".claude/.credentials.json"),
-                encoding: .utf8
-            ))
-        guard let json,
-              let data = json.data(using: .utf8),
+    static var credentialsFile: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/.credentials.json")
+    }
+
+    static func token(fromCredentialsJSON json: String) -> String? {
+        guard let data = json.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = root["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String, !token.isEmpty
         else { return nil }
         return token
-    }
-
-    /// Claude Code stores credentials as a generic password; read it the same
-    /// way other trackers do (via `security`, which works without entitlements).
-    /// The call can block on a one-time macOS permission prompt, so it gets a
-    /// hard timeout and a short cache.
-    private nonisolated(unsafe) static var cachedJSON: (value: String?, at: Date)?
-    private static let cacheLock = NSLock()
-    private static let cacheTTL: TimeInterval = 60
-
-    private static func keychainCredentialsJSON() -> String? {
-        cacheLock.lock()
-        if let cached = cachedJSON, Date().timeIntervalSince(cached.at) < cacheTTL {
-            cacheLock.unlock()
-            return cached.value
-        }
-        cacheLock.unlock()
-
-        let value = runSecurityTool()
-        cacheLock.lock()
-        cachedJSON = (value, Date())
-        cacheLock.unlock()
-        return value
-    }
-
-    private static func runSecurityTool() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do {
-            try process.run()
-        } catch { return nil }
-        let deadline = Date().addingTimeInterval(5)
-        while process.isRunning && Date() < deadline {
-            usleep(50_000)
-        }
-        if process.isRunning {
-            process.terminate()
-            return nil
-        }
-        guard process.terminationStatus == 0 else { return nil }
-        let out = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-        let trimmed = out.trimmed
-        return trimmed.isEmpty ? nil : trimmed
     }
 
     // MARK: - Parsing

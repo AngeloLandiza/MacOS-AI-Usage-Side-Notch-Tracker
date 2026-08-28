@@ -34,6 +34,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if self?.cardPanel.isVisible == true { self?.positionCard() }
             }
             .store(in: &subscriptions)
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.layoutNotch(itemCount: self.store.providers.count)
+            }
+            .store(in: &subscriptions)
     }
 
     // MARK: - Panels
@@ -130,9 +137,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let size = cardHost.fittingSize
         // SwiftUI `.global` y is top-down within the window; convert to screen.
         let anchorY = notchPanel.frame.maxY - hover.midY
+        var y = anchorY - size.height / 2
+        if let visible = screen?.visibleFrame {
+            // Keep the card fully on screen (the top ring sits near the menu bar).
+            y = min(max(y, visible.minY + 4), visible.maxY - size.height - 4)
+        }
         let origin = NSPoint(
-            x: notchPanel.frame.minX - size.width - Theme.cardGap,
-            y: anchorY - size.height / 2
+            // The shadow margin overlaps the gap so the pointer sits cardGap
+            // from the notch.
+            x: notchPanel.frame.minX - size.width - Theme.cardGap + Theme.cardShadowPad,
+            y: y
         )
         cardPanel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
@@ -167,7 +181,7 @@ struct CardHost: View {
         if let hover = hoverModel.hover,
            let info = store.providers.first(where: { $0.id == hover.providerID }) {
             DetailCard(info: info, state: store.states[info.id] ?? .loading)
-                .padding(6)
+                .padding(Theme.cardShadowPad)
         }
     }
 }

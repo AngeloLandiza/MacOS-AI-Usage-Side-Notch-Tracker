@@ -49,14 +49,18 @@ struct DeepSeekProvider: UsageProvider {
         if response.is_available == false {
             metrics.append(Metric(label: "Balance exhausted", sublabel: "Top up to keep using the API"))
         }
-        let primary = infos.first
-        let balance = primary?.total_balance.flatMap(Double.init)
-        let label = balance.map { Fmt.money($0, currency: primary?.currency ?? "USD") } ?? "—"
+        // The account may hold several currencies; lead with the first funded one.
+        let balances: [(currency: String, amount: Double)] = infos.compactMap { info in
+            info.total_balance.flatMap(Double.init).map { (info.currency ?? "USD", $0) }
+        }
+        let primary = balances.first { $0.amount > 0 } ?? balances.first
+        let label = primary.map { Fmt.money($0.amount, currency: $0.currency) } ?? "—"
+        let all = balances.map { Fmt.money($0.amount, currency: $0.currency) }.joined(separator: " · ")
         return ProviderStatus(
             ringFraction: response.is_available == false ? 0 : nil,
             ringLabel: label,
             metrics: metrics,
-            credits: label == "—" ? nil : label
+            credits: all.isEmpty ? nil : all
         )
     }
 }

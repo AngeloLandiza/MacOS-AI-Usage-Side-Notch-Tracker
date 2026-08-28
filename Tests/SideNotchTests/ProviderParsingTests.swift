@@ -81,13 +81,27 @@ import Testing
         #expect(status.credits == nil)
     }
 
-    @Test func zeroScientificBalanceHidden() throws {
+    @Test func noCreditsHidesBalance() throws {
         let data = Data("""
         {"rate_limit": {"primary_window": {"used_percent": 5}},
          "credits": {"has_credits": false, "unlimited": false, "balance": "0E-10"}}
         """.utf8)
         let status = try CodexProvider.parse(data)
         #expect(status.credits == nil)
+    }
+
+    @Test func scientificNotationBalanceParses() throws {
+        let data = Data("""
+        {"credits": {"has_credits": true, "unlimited": false, "balance": "3.5E1"}}
+        """.utf8)
+        let status = try CodexProvider.parse(data)
+        #expect(status.credits == "$35.00")
+    }
+
+    @Test func unlimitedCredits() throws {
+        let data = Data(#"{"credits": {"has_credits": true, "unlimited": true}}"#.utf8)
+        let status = try CodexProvider.parse(data)
+        #expect(status.credits == "Unlimited")
     }
 }
 
@@ -141,6 +155,18 @@ import Testing
         #expect(status.ringLabel == "$110")
         #expect(status.credits == "$110")
         #expect(status.metrics.count == 2)
+    }
+
+    @Test func leadsWithFundedCurrency() throws {
+        let data = Data("""
+        {"is_available": true, "balance_infos": [
+          {"currency": "CNY", "total_balance": "0.00", "granted_balance": "0.00", "topped_up_balance": "0.00"},
+          {"currency": "USD", "total_balance": "50.00", "granted_balance": "0.00", "topped_up_balance": "50.00"}]}
+        """.utf8)
+        let status = try DeepSeekProvider.parse(data)
+        #expect(status.ringLabel == "$50.00")
+        #expect(status.credits?.contains("$50.00") == true)
+        #expect(status.credits?.contains(" · ") == true)   // both currencies listed
     }
 
     @Test func exhaustedBalanceShowsEmptyRing() throws {

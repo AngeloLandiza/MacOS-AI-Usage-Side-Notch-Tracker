@@ -5,6 +5,7 @@ struct SettingsView: View {
     @ObservedObject var store: UsageStore
     @State private var openRouterKey = Keychain.read(service: OpenRouterProvider.keychainService) ?? ""
     @State private var deepSeekKey = Keychain.read(service: DeepSeekProvider.keychainService) ?? ""
+    @State private var saveError: String?
 
     var body: some View {
         Form {
@@ -17,10 +18,15 @@ struct SettingsView: View {
                 SecureField("DeepSeek API key", text: $deepSeekKey)
             }
             Button("Save") {
-                Keychain.write(service: OpenRouterProvider.keychainService, value: openRouterKey.trimmed)
-                Keychain.write(service: DeepSeekProvider.keychainService, value: deepSeekKey.trimmed)
+                let savedOpenRouter = Keychain.write(service: OpenRouterProvider.keychainService, value: openRouterKey.trimmed)
+                let savedDeepSeek = Keychain.write(service: DeepSeekProvider.keychainService, value: deepSeekKey.trimmed)
+                saveError = savedOpenRouter && savedDeepSeek
+                    ? nil : "Couldn't save to the Keychain — the previous keys are unchanged."
                 store.reloadProviders()
-                Task { await store.refreshAll() }
+                Task { await store.refreshAll(force: true) }
+            }
+            if let saveError {
+                Text(saveError).foregroundStyle(.red).font(.callout)
             }
         }
         .formStyle(.grouped)
