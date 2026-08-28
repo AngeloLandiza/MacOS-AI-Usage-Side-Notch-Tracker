@@ -77,19 +77,15 @@ final class UsageStore: ObservableObject {
             lastFetch[id] = now
             targets.append((id, provider))
         }
-        // Fetch concurrently off the main actor, then apply results here.
-        let results = await withTaskGroup(of: (String, Result<ProviderStatus, any Error>).self) { group in
-            for (id, provider) in targets {
-                group.addTask {
-                    do { return (id, .success(try await provider.fetch())) }
-                    catch { return (id, .failure(error)) }
-                }
-            }
-            var collected: [(String, Result<ProviderStatus, any Error>)] = []
-            for await result in group { collected.append(result) }
-            return collected
+        // Fetch concurrently off the main actor; apply each result as it lands.
+        let tasks = targets.map { id, provider in
+            (id, Task.detached { () -> Result<ProviderStatus, any Error> in
+                do { return .success(try await provider.fetch()) }
+                catch { return .failure(error) }
+            })
         }
-        for (id, result) in results {
+        for (id, task) in tasks {
+            let result = await task.value
             // The provider may have been removed in Settings mid-fetch.
             guard byID[id] != nil else { continue }
             switch result {
